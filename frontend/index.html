@@ -10,9 +10,12 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>RetailAI</title>
+    <title>RetailAI — Hannah</title>
 
-    <link rel="stylesheet" href="/style.css">
+    <link
+        rel="stylesheet"
+        href="/style.css"
+    >
 
 </head>
 
@@ -21,11 +24,37 @@
 
     <main class="app">
 
+        <!-- =================================================
+             HEADER
+             ================================================= -->
+
         <header class="top-bar">
 
-            <div class="brand">
-                RETAIL<span>AI</span>
+            <div class="brand-left">
+
+                <span class="brand-retail">
+                    RETAIL
+                </span>
+
+                <span class="brand-ai">
+                    AI
+                </span>
+
             </div>
+
+
+            <div class="hannah-brand">
+
+                <div class="hannah-name">
+                    HANNAH
+                </div>
+
+                <div class="hannah-subtitle">
+                    RETAILAI ASSISTANT
+                </div>
+
+            </div>
+
 
             <div class="system-status">
 
@@ -40,23 +69,75 @@
         </header>
 
 
-        <section class="main-area">
+        <!-- =================================================
+             CHAT AREA
+             ================================================= -->
+
+        <main
+            id="chatArea"
+            class="chat-area"
+        >
+
+            <!-- Welcome -->
+
+            <section
+                id="welcome"
+                class="welcome"
+            >
+
+                <div class="welcome-line"></div>
+
+                <h1>
+                    How can I help you, sir?
+                </h1>
+
+                <p>
+                    Ask Hannah about your retail business.
+                </p>
+
+            </section>
+
+
+            <!-- Messages -->
+
+            <div
+                id="messages"
+                class="messages"
+            ></div>
+
+        </main>
+
+
+        <!-- =================================================
+             VOICE MODE
+             ================================================= -->
+
+        <section
+            id="voiceMode"
+            class="voice-mode"
+            aria-hidden="true"
+        >
+
+            <div class="voice-header">
+                HANNAH
+            </div>
+
 
             <button
-    id="micButton"
-    class="orb-button"
-    aria-label="Start listening"
->
+                class="voice-core"
+                type="button"
+                aria-label="Voice mode"
+            >
 
-    <div
-        id="orb-container"
-        class="orb-container"
-    ></div>
+                <div
+                    id="orb-container"
+                    class="orb-container"
+                ></div>
 
-</button>
+            </button>
 
 
-            <div class="state">
+            <div class="voice-status">
 
                 <p id="status">
                     READY
@@ -64,13 +145,78 @@
 
             </div>
 
+
+            <p class="voice-hint">
+                Tap the microphone to speak
+            </p>
+
         </section>
 
 
-        <footer class="bottom-bar">
+        <!-- =================================================
+             INPUT
+             ================================================= -->
 
-            <p>
-                Tap the core to speak
+        <footer class="input-area">
+
+            <div
+                id="inputShell"
+                class="input-shell"
+            >
+
+                <textarea
+                    id="messageInput"
+                    rows="1"
+                    placeholder="Ask Hannah anything..."
+                    autocomplete="off"
+                ></textarea>
+
+
+                <div class="input-actions">
+
+                    <!--
+                        IMPORTANT:
+                        Keep id="micButton" because the
+                        current script.js uses this ID.
+                    -->
+
+                    <button
+                        id="micButton"
+                        class="icon-button"
+                        type="button"
+                        aria-label="Use voice"
+                        title="Voice"
+                    >
+
+                        <span class="mic-icon">
+                            ◉
+                        </span>
+
+                    </button>
+
+
+                    <button
+                        id="sendButton"
+                        class="send-button"
+                        type="button"
+                        aria-label="Send message"
+                        title="Send"
+                    >
+
+                        <span>
+                            ↑
+                        </span>
+
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <p class="input-hint">
+                Hannah can answer questions, analyze data,
+                search information and perform tasks.
             </p>
 
         </footer>
@@ -78,9 +224,19 @@
     </main>
 
 
-<script type="module" src="/orb.js"></script>
+    <!-- =====================================================
+         SCRIPTS
+         ===================================================== -->
 
-<script src="/script.js"></script>
+    <script
+        type="module"
+        src="/orb.js"
+    ></script>
+
+    <script
+        src="/script.js"
+    ></script>
+
 </body>
 
 </html>

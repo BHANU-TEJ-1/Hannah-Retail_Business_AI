@@ -2,19 +2,12 @@ import * as THREE from
     "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 
 
+/* =========================================================
+   CONTAINER
+   ========================================================= */
+
 const orbContainer =
     document.getElementById("orb-container");
-
-
-let audioContext = null;
-
-let analyser = null;
-
-let audioData = null;
-
-let audioLevel = 0;
-
-let targetAudioLevel = 0;
 
 
 if (!orbContainer) {
@@ -25,34 +18,49 @@ if (!orbContainer) {
 
 } else {
 
-    // =========================
-    // SCENE
-    // =========================
+
+    /* =====================================================
+       COLORS
+       ===================================================== */
+
+    const ORANGE =
+        0xff7a00;
+
+    const BRIGHT_ORANGE =
+        0xffa33a;
+
+    const WHITE =
+        0xffffff;
+
+
+    /* =====================================================
+       SCENE
+       ===================================================== */
 
     const scene =
         new THREE.Scene();
 
 
-    // =========================
-    // CAMERA
-    // =========================
+    /* =====================================================
+       CAMERA
+       ===================================================== */
 
     const camera =
         new THREE.PerspectiveCamera(
             45,
-            orbContainer.clientWidth /
-                orbContainer.clientHeight,
+            1,
             0.1,
             100
         );
 
 
-    camera.position.z = 4;
+    camera.position.z =
+        4;
 
 
-    // =========================
-    // RENDERER
-    // =========================
+    /* =====================================================
+       RENDERER
+       ===================================================== */
 
     const renderer =
         new THREE.WebGLRenderer({
@@ -69,9 +77,9 @@ if (!orbContainer) {
     );
 
 
-    renderer.setSize(
-        orbContainer.clientWidth,
-        orbContainer.clientHeight
+    renderer.setClearColor(
+        0x000000,
+        0
     );
 
 
@@ -80,9 +88,91 @@ if (!orbContainer) {
     );
 
 
-    // =========================
-    // OUTER SPHERE
-    // =========================
+    /* =====================================================
+       RESIZE
+       ===================================================== */
+
+    function resizeRenderer() {
+
+        const width =
+            orbContainer.clientWidth;
+
+        const height =
+            orbContainer.clientHeight;
+
+
+        /*
+         * The voice overlay may initially
+         * be hidden.
+         *
+         * Do not try to render a 0x0 canvas.
+         */
+
+        if (
+            width <= 0 ||
+            height <= 0
+        ) {
+
+            return;
+
+        }
+
+
+        camera.aspect =
+            width / height;
+
+
+        camera.updateProjectionMatrix();
+
+
+        renderer.setSize(
+            width,
+            height,
+            false
+        );
+
+    }
+
+
+    resizeRenderer();
+
+
+    window.addEventListener(
+        "resize",
+        resizeRenderer
+    );
+
+
+    /*
+     * ResizeObserver is important because
+     * the voice overlay can change from
+     * hidden -> visible without a window resize.
+     */
+
+    if (
+        window.ResizeObserver
+    ) {
+
+        const resizeObserver =
+            new ResizeObserver(
+                () => {
+
+                    resizeRenderer();
+
+                }
+            );
+
+
+        resizeObserver.observe(
+            orbContainer
+        );
+
+    }
+
+
+    /* =====================================================
+       OUTER WAVE SPHERE
+       ===================================================== */
 
     const geometry =
         new THREE.SphereGeometry(
@@ -95,13 +185,17 @@ if (!orbContainer) {
     const material =
         new THREE.MeshBasicMaterial({
 
-            color: 0x00eaff,
+            color:
+                ORANGE,
 
-            wireframe: true,
+            wireframe:
+                true,
 
-            transparent: true,
+            transparent:
+                true,
 
-            opacity: 0.45
+            opacity:
+                0.30
 
         });
 
@@ -113,16 +207,60 @@ if (!orbContainer) {
         );
 
 
-    scene.add(orb);
+    scene.add(
+        orb
+    );
 
 
-    // =========================
-    // INNER CORE
-    // =========================
+    /* =====================================================
+       SECOND WAVE LAYER
+       ===================================================== */
+
+    const waveGeometry =
+        new THREE.SphereGeometry(
+            1.08,
+            48,
+            48
+        );
+
+
+    const waveMaterial =
+        new THREE.MeshBasicMaterial({
+
+            color:
+                BRIGHT_ORANGE,
+
+            wireframe:
+                true,
+
+            transparent:
+                true,
+
+            opacity:
+                0.12
+
+        });
+
+
+    const wave =
+        new THREE.Mesh(
+            waveGeometry,
+            waveMaterial
+        );
+
+
+    scene.add(
+        wave
+    );
+
+
+    /* =====================================================
+       INNER CORE
+       ===================================================== */
 
     const coreGeometry =
         new THREE.SphereGeometry(
-            0.42,
+            0.38,
             48,
             48
         );
@@ -131,11 +269,14 @@ if (!orbContainer) {
     const coreMaterial =
         new THREE.MeshBasicMaterial({
 
-            color: 0xffffff,
+            color:
+                WHITE,
 
-            transparent: true,
+            transparent:
+                true,
 
-            opacity: 0.9
+            opacity:
+                0.88
 
         });
 
@@ -147,12 +288,73 @@ if (!orbContainer) {
         );
 
 
-    scene.add(core);
+    scene.add(
+        core
+    );
 
 
-    // =========================
-    // AUDIO INITIALIZATION
-    // =========================
+    /* =====================================================
+       INNER ORANGE CORE
+       ===================================================== */
+
+    const innerCoreGeometry =
+        new THREE.SphereGeometry(
+            0.22,
+            32,
+            32
+        );
+
+
+    const innerCoreMaterial =
+        new THREE.MeshBasicMaterial({
+
+            color:
+                BRIGHT_ORANGE,
+
+            transparent:
+                true,
+
+            opacity:
+                0.65
+
+        });
+
+
+    const innerCore =
+        new THREE.Mesh(
+            innerCoreGeometry,
+            innerCoreMaterial
+        );
+
+
+    scene.add(
+        innerCore
+    );
+
+
+    /* =====================================================
+       AUDIO
+       ===================================================== */
+
+    let audioContext =
+        null;
+
+    let analyser =
+        null;
+
+    let audioData =
+        null;
+
+    let audioLevel =
+        0;
+
+    let targetAudioLevel =
+        0;
+
+
+    /* =====================================================
+       AUDIO INITIALIZATION
+       ===================================================== */
 
     function initializeAudio() {
 
@@ -181,11 +383,11 @@ if (!orbContainer) {
 
 
         analyser.fftSize =
-            256;
+            512;
 
 
         analyser.smoothingTimeConstant =
-            0.75;
+            0.72;
 
 
         audioData =
@@ -201,11 +403,13 @@ if (!orbContainer) {
     }
 
 
-    // =========================
-    // CONNECT AUDIO
-    // =========================
+    /* =====================================================
+       CONNECT AUDIO
+       ===================================================== */
 
-    function connectAudio(audio) {
+    function connectAudio(
+        audio
+    ) {
 
         initializeAudio();
 
@@ -220,32 +424,49 @@ if (!orbContainer) {
         }
 
 
-        const source =
-            audioContext.createMediaElementSource(
-                audio
+        /*
+         * Every HTMLAudioElement created
+         * by script.js is new, so creating
+         * its MediaElementSource once is safe.
+         */
+
+        try {
+
+            const source =
+                audioContext.createMediaElementSource(
+                    audio
+                );
+
+
+            source.connect(
+                analyser
             );
 
 
-        source.connect(
-            analyser
-        );
+            analyser.connect(
+                audioContext.destination
+            );
 
 
-        analyser.connect(
-            audioContext.destination
-        );
+            console.log(
+                "Orb connected to audio."
+            );
 
+        } catch (error) {
 
-        console.log(
-            "Orb connected to audio."
-        );
+            console.error(
+                "Orb audio connection failed:",
+                error
+            );
+
+        }
 
     }
 
 
-    // =========================
-    // AUDIO ANALYSIS
-    // =========================
+    /* =====================================================
+       AUDIO ANALYSIS
+       ===================================================== */
 
     function updateAudioLevel() {
 
@@ -254,7 +475,14 @@ if (!orbContainer) {
             !audioData
         ) {
 
-            targetAudioLevel = 0;
+            targetAudioLevel =
+                0;
+
+            audioLevel +=
+                (
+                    targetAudioLevel -
+                    audioLevel
+                ) * 0.08;
 
             return;
 
@@ -266,47 +494,70 @@ if (!orbContainer) {
         );
 
 
-        let total = 0;
+        let total =
+            0;
+
+
+        /*
+         * Give lower frequencies
+         * slightly more importance.
+         */
+
+        const length =
+            audioData.length;
 
 
         for (
             let i = 0;
-            i < audioData.length;
+            i < length;
             i++
         ) {
 
+            const weight =
+                i < length * 0.35
+                    ? 1.4
+                    : 0.8;
+
+
             total +=
-                audioData[i];
+                audioData[i] *
+                weight;
 
         }
 
 
         const average =
             total /
-            audioData.length;
+            length;
 
 
         targetAudioLevel =
-            average / 255;
+            Math.min(
+                average / 180,
+                1
+            );
 
 
         /*
-         * Make the movement much
-         * more visible.
+         * Smooth the movement.
          */
 
         audioLevel +=
             (
                 targetAudioLevel -
                 audioLevel
-            ) * 0.35;
+            ) * 0.28;
 
     }
 
 
-    // =========================
-    // ANIMATION
-    // =========================
+    /* =====================================================
+       ANIMATION
+       ===================================================== */
+
+    let time =
+        0;
+
 
     function animate() {
 
@@ -315,32 +566,48 @@ if (!orbContainer) {
         );
 
 
+        time +=
+            0.01;
+
+
         updateAudioLevel();
 
 
-        /*
-         * Idle movement.
-         */
+        /* =================================================
+           IDLE MOVEMENT
+           ================================================= */
 
         orb.rotation.x +=
-            0.002;
+            0.0015;
 
 
         orb.rotation.y +=
-            0.004;
+            0.0025;
+
+
+        wave.rotation.x -=
+            0.001;
+
+
+        wave.rotation.y +=
+            0.0015;
+
+
+        /* =================================================
+           AUDIO VIBRATION
+           ================================================= */
+
+        const vibration =
+            audioLevel;
 
 
         /*
-         * Audio movement.
+         * Main sphere expands.
          */
-
-        const audioScale =
-            audioLevel * 0.8;
-
 
         const orbScale =
             1 +
-            audioScale;
+            vibration * 0.55;
 
 
         orb.scale.set(
@@ -351,12 +618,29 @@ if (!orbContainer) {
 
 
         /*
-         * Core reacts more strongly.
+         * Second wave expands
+         * more aggressively.
+         */
+
+        const wavePulse =
+            1.04 +
+            vibration * 0.9;
+
+
+        wave.scale.set(
+            wavePulse,
+            wavePulse,
+            wavePulse
+        );
+
+
+        /*
+         * Core reacts strongly.
          */
 
         const coreScale =
             1 +
-            audioLevel * 1.5;
+            vibration * 1.7;
 
 
         core.scale.set(
@@ -366,20 +650,70 @@ if (!orbContainer) {
         );
 
 
-        /*
-         * Make the glow stronger
-         * while speaking.
-         */
+        const innerScale =
+            1 +
+            vibration * 2.4;
+
+
+        innerCore.scale.set(
+            innerScale,
+            innerScale,
+            innerScale
+        );
+
+
+        /* =================================================
+           SMALL FLOATING VIBRATION
+           ================================================= */
+
+        orb.position.y =
+            Math.sin(
+                time * 2
+            ) *
+            0.015;
+
+
+        wave.position.y =
+            Math.sin(
+                time * 2.5
+            ) *
+            0.025;
+
+
+        core.position.y =
+            Math.sin(
+                time * 3
+            ) *
+            0.008;
+
+
+        /* =================================================
+           OPACITY
+           ================================================= */
 
         material.opacity =
-            0.35 +
-            audioLevel * 0.6;
+            0.28 +
+            vibration * 0.58;
+
+
+        waveMaterial.opacity =
+            0.08 +
+            vibration * 0.32;
 
 
         coreMaterial.opacity =
             0.75 +
-            audioLevel * 0.25;
+            vibration * 0.25;
 
+
+        innerCoreMaterial.opacity =
+            0.35 +
+            vibration * 0.55;
+
+
+        /* =================================================
+           RENDER
+           ================================================= */
 
         renderer.render(
             scene,
@@ -392,40 +726,9 @@ if (!orbContainer) {
     animate();
 
 
-    // =========================
-    // RESIZE
-    // =========================
-
-    window.addEventListener(
-        "resize",
-        () => {
-
-            const width =
-                orbContainer.clientWidth;
-
-            const height =
-                orbContainer.clientHeight;
-
-
-            camera.aspect =
-                width / height;
-
-
-            camera.updateProjectionMatrix();
-
-
-            renderer.setSize(
-                width,
-                height
-            );
-
-        }
-    );
-
-
-    // =========================
-    // GLOBAL FUNCTIONS
-    // =========================
+    /* =====================================================
+       GLOBAL FUNCTIONS
+       ===================================================== */
 
     window.initializeOrbAudio =
         initializeAudio;
@@ -433,5 +736,13 @@ if (!orbContainer) {
 
     window.connectOrbToAudio =
         connectAudio;
+
+
+    /*
+     * Useful for debugging.
+     */
+
+    window.resizeHannahOrb =
+        resizeRenderer;
 
 }

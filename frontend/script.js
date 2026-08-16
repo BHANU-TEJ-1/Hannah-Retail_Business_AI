@@ -1,274 +1,275 @@
-const micButton = document.getElementById("micButton");
-const statusText = document.getElementById("status");
-
-const SpeechRecognition =
-    window.SpeechRecognition ||
-    window.webkitSpeechRecognition;
-
-let recognition = null;
-
-let isListening = false;
-let isProcessing = false;
-let isSpeaking = false;
-
-let speechQueue = [];
-let speechWorkerRunning = false;
-let currentAudio = null;
-
-let currentChatController = null;
-let requestId = 0;
+/* =========================================================
+   RETAILAI / HANNAH
+   Chat + Voice Interface
+   ========================================================= */
 
 
-/*
- * TTS settings
- *
- * Short responses are spoken as one complete response.
- * Longer responses are split into larger natural chunks.
- */
+/* =========================================================
+   DOM
+   ========================================================= */
 
-const SHORT_RESPONSE_LIMIT = 250;
-const TTS_BATCH_SIZE = 1000;
+const micButton =
+    document.getElementById("micButton");
+
+const statusText =
+    document.getElementById("status");
+
+const messageInput =
+    document.getElementById("messageInput");
+
+const sendButton =
+    document.getElementById("sendButton");
+
+const messages =
+    document.getElementById("messages");
+
+const chatArea =
+    document.getElementById("chatArea");
+
+const welcome =
+    document.getElementById("welcome");
+
+const voiceMode =
+    document.getElementById("voiceMode");
+
+const voiceCore =
+    document.querySelector(".voice-core");
 
 
 /* =========================================================
    SPEECH RECOGNITION
    ========================================================= */
 
+const SpeechRecognition =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+
+let recognition = null;
+
+
+/* =========================================================
+   STATE
+   ========================================================= */
+
+let isListening = false;
+
+let isProcessing = false;
+
+let isSpeaking = false;
+
+let speechQueue = [];
+
+let speechWorkerRunning = false;
+
+let currentAudio = null;
+
+let currentRequestId = 0;
+
+let currentChatController = null;
+
+let currentRequestIsVoice = false;
+
+
+/* =========================================================
+   INITIALIZATION
+   ========================================================= */
+
 if (!SpeechRecognition) {
 
-    statusText.textContent =
-        "BROWSER NOT SUPPORTED";
+    console.warn(
+        "Speech recognition is not supported."
+    );
 
 } else {
 
-    recognition = new SpeechRecognition();
+    recognition =
+        new SpeechRecognition();
 
-    recognition.lang = "en-US";
+    recognition.lang =
+        "en-US";
 
-    recognition.continuous = false;
+    recognition.continuous =
+        false;
 
-    recognition.interimResults = false;
+    recognition.interimResults =
+        false;
+
+    recognition.onstart =
+        handleRecognitionStart;
+
+    recognition.onresult =
+        handleRecognitionResult;
+
+    recognition.onerror =
+        handleRecognitionError;
+
+    recognition.onend =
+        handleRecognitionEnd;
+}
 
 
-    micButton.addEventListener(
+/* =========================================================
+   BUTTON EVENTS
+   ========================================================= */
+
+if (sendButton) {
+
+    sendButton.addEventListener(
         "click",
-        handleMicClick
+        sendTextMessage
+    );
+
+}
+
+
+if (messageInput) {
+
+    messageInput.addEventListener(
+        "keydown",
+        (event) => {
+
+            if (
+                event.key === "Enter" &&
+                !event.shiftKey
+            ) {
+
+                event.preventDefault();
+
+                sendTextMessage();
+
+            }
+
+        }
     );
 
 
-    /*
-     * Recognition started.
-     */
+    messageInput.addEventListener(
+        "input",
+        resizeInput
+    );
 
-    recognition.onstart = () => {
+}
 
-        console.log(
-            "VOICE DEBUG: recognition started"
-        );
 
-        isListening = true;
+if (micButton) {
 
-        updateStatus(
-            "LISTENING"
-        );
+    micButton.addEventListener(
+        "click",
+        handleMicButton
+    );
 
-    };
+}
 
 
-    /*
-     * Speech result received.
-     */
+if (voiceCore) {
 
-    recognition.onresult = async (event) => {
-
-        console.log(
-            "VOICE DEBUG: result received",
-            event
-        );
-
-
-        if (!isListening) {
-
-            console.log(
-                "VOICE DEBUG: ignoring result because not listening"
-            );
-
-            return;
-
-        }
-
-
-        const text =
-            event.results[0][0]
-                .transcript
-                .trim();
-
-
-        console.log(
-            "User said:",
-            text
-        );
-
-
-        if (!text) {
-
-            console.log(
-                "VOICE DEBUG: empty speech result"
-            );
-
-            return;
-
-        }
-
-
-        isListening = false;
-
-        isProcessing = true;
-
-
-        updateStatus(
-            "PROCESSING"
-        );
-
-
-        try {
-
-            await processQuestion(
-                text
-            );
-
-        } catch (error) {
-
-            if (
-                error.name ===
-                "AbortError"
-            ) {
-
-                console.log(
-                    "Previous request cancelled."
-                );
-
-                return;
-
-            }
-
-
-            console.error(
-                "RetailAI error:",
-                error
-            );
-
-
-            updateStatus(
-                "ERROR"
-            );
-
-        } finally {
-
-            isProcessing = false;
-
-        }
-
-    };
-
-
-    /*
-     * Recognition error.
-     */
-
-    recognition.onerror = (event) => {
-
-        console.error(
-            "VOICE DEBUG: recognition error:",
-            event.error
-        );
-
-
-        isListening = false;
-
-
-        /*
-         * Aborted is normally caused by
-         * intentionally stopping recognition.
-         */
-
-        if (
-            event.error ===
-            "aborted"
-        ) {
-
-            return;
-
-        }
-
-
-        updateStatus(
-            "READY"
-        );
-
-    };
-
-
-    /*
-     * Recognition ended.
-     */
-
-    recognition.onend = () => {
-
-        console.log(
-            "VOICE DEBUG: recognition ended",
-            {
-                isListening: isListening,
-                isProcessing: isProcessing,
-                isSpeaking: isSpeaking
-            }
-        );
-
-
-        isListening = false;
-
-
-        /*
-         * Do not change READY while
-         * processing or speaking.
-         */
-
-        if (
-            !isProcessing &&
-            !isSpeaking
-        ) {
-
-            updateStatus(
-                "READY"
-            );
-
-        }
-
-    };
+    voiceCore.addEventListener(
+        "click",
+        handleVoiceCoreClick
+    );
 
 }
 
 
 /* =========================================================
-   MICROPHONE BUTTON
+   TEXT CHAT
    ========================================================= */
 
-function handleMicClick() {
+async function sendTextMessage() {
+
+    if (!messageInput) {
+        return;
+    }
+
+
+    if (
+        isProcessing ||
+        isSpeaking ||
+        isListening
+    ) {
+
+        return;
+
+    }
+
+
+    const text =
+        messageInput.value.trim();
+
+
+    if (!text) {
+        return;
+    }
+
+
+    isProcessing =
+        true;
+
+
+    messageInput.value =
+        "";
+
+
+    resizeInput();
+
+
+    appendMessage(
+        "user",
+        text
+    );
+
+
+    try {
+
+        await processQuestion(
+            text,
+            false
+        );
+
+    } catch (error) {
+
+        console.error(
+            "TEXT CHAT ERROR:",
+            error
+        );
+
+
+        appendMessage(
+            "assistant",
+            "Sorry sir, I could not complete that request."
+        );
+
+    } finally {
+
+        isProcessing =
+            false;
+
+    }
+
+}
+
+
+/* =========================================================
+   VOICE BUTTON
+   ========================================================= */
+
+function handleMicButton() {
 
     console.log(
-        "MIC CLICK",
+        "MIC BUTTON",
         {
-            isListening: isListening,
-            isProcessing: isProcessing,
-            isSpeaking: isSpeaking
+            isListening,
+            isProcessing,
+            isSpeaking
         }
     );
 
 
-    /*
-     * If already listening,
-     * stop the microphone.
-     */
+    if (!recognition) {
+        return;
+    }
+
 
     if (isListening) {
 
@@ -279,19 +280,47 @@ function handleMicClick() {
     }
 
 
-    /*
-     * Don't start another request while
-     * Hannah is processing or speaking.
-     */
-
     if (
         isProcessing ||
         isSpeaking
     ) {
 
-        console.log(
-            "Hannah is busy."
-        );
+        return;
+
+    }
+
+
+    openVoiceMode();
+
+    startListening();
+
+}
+
+
+/* =========================================================
+   VOICE CORE
+   ========================================================= */
+
+function handleVoiceCoreClick() {
+
+    if (!recognition) {
+        return;
+    }
+
+
+    if (isListening) {
+
+        stopListening();
+
+        return;
+
+    }
+
+
+    if (
+        isProcessing ||
+        isSpeaking
+    ) {
 
         return;
 
@@ -304,19 +333,73 @@ function handleMicClick() {
 
 
 /* =========================================================
+   OPEN VOICE MODE
+   ========================================================= */
+
+function openVoiceMode() {
+
+    if (!voiceMode) {
+        return;
+    }
+
+
+    voiceMode.classList.add(
+        "active"
+    );
+
+
+    voiceMode.setAttribute(
+        "aria-hidden",
+        "false"
+    );
+
+}
+
+
+/* =========================================================
+   CLOSE VOICE MODE
+   ========================================================= */
+
+function closeVoiceMode() {
+
+    if (!voiceMode) {
+        return;
+    }
+
+
+    voiceMode.classList.remove(
+        "active"
+    );
+
+
+    voiceMode.setAttribute(
+        "aria-hidden",
+        "true"
+    );
+
+}
+
+
+/* =========================================================
    START LISTENING
    ========================================================= */
 
 function startListening() {
 
     if (!recognition) {
-
         return;
-
     }
 
 
     if (isListening) {
+        return;
+    }
+
+
+    if (
+        isProcessing ||
+        isSpeaking
+    ) {
 
         return;
 
@@ -345,7 +428,8 @@ function startListening() {
         );
 
 
-        isListening = false;
+        isListening =
+            false;
 
 
         updateStatus(
@@ -356,6 +440,7 @@ function startListening() {
 
 }
 
+
 /* =========================================================
    STOP LISTENING
    ========================================================= */
@@ -363,9 +448,7 @@ function startListening() {
 function stopListening() {
 
     if (!recognition) {
-
         return;
-
     }
 
 
@@ -374,7 +457,8 @@ function stopListening() {
     );
 
 
-    isListening = false;
+    isListening =
+        false;
 
 
     try {
@@ -391,10 +475,174 @@ function stopListening() {
     }
 
 
-    /*
-     * Don't force READY if something
-     * else is already processing.
-     */
+    if (
+        !isProcessing &&
+        !isSpeaking
+    ) {
+
+        updateStatus(
+            "READY"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   RECOGNITION START
+   ========================================================= */
+
+function handleRecognitionStart() {
+
+    console.log(
+        "VOICE DEBUG: recognition started"
+    );
+
+
+    isListening =
+        true;
+
+
+    updateStatus(
+        "LISTENING"
+    );
+
+}
+
+
+/* =========================================================
+   RECOGNITION RESULT
+   ========================================================= */
+
+async function handleRecognitionResult(
+    event
+) {
+
+    console.log(
+        "VOICE DEBUG: result received",
+        event
+    );
+
+
+    const text =
+        event.results[0][0]
+            .transcript
+            .trim();
+
+
+    console.log(
+        "User said:",
+        text
+    );
+
+
+    if (!text) {
+        return;
+    }
+
+
+    isListening =
+        false;
+
+
+    isProcessing =
+        true;
+
+
+    appendMessage(
+        "user",
+        text
+    );
+
+
+    updateStatus(
+        "PROCESSING"
+    );
+
+
+    try {
+
+        await processQuestion(
+            text,
+            true
+        );
+
+    } catch (error) {
+
+        console.error(
+            "RetailAI voice error:",
+            error
+        );
+
+
+        updateStatus(
+            "ERROR"
+        );
+
+    } finally {
+
+        isProcessing =
+            false;
+
+    }
+
+}
+
+
+/* =========================================================
+   RECOGNITION ERROR
+   ========================================================= */
+
+function handleRecognitionError(
+    event
+) {
+
+    console.error(
+        "VOICE DEBUG: recognition error:",
+        event.error
+    );
+
+
+    isListening =
+        false;
+
+
+    if (
+        event.error === "aborted"
+    ) {
+
+        return;
+
+    }
+
+
+    updateStatus(
+        "READY"
+    );
+
+}
+
+
+/* =========================================================
+   RECOGNITION END
+   ========================================================= */
+
+function handleRecognitionEnd() {
+
+    console.log(
+        "VOICE DEBUG: recognition ended",
+        {
+            isListening,
+            isProcessing,
+            isSpeaking
+        }
+    );
+
+
+    isListening =
+        false;
+
 
     if (
         !isProcessing &&
@@ -411,100 +659,39 @@ function stopListening() {
 
 
 /* =========================================================
-   CANCEL PREVIOUS REQUEST
+   MAIN QUESTION PROCESSOR
    ========================================================= */
 
-function cancelPreviousRequest() {
-
-    /*
-     * Cancel previous chat request.
-     */
-
-    if (
-        currentChatController
-    ) {
-
-        console.log(
-            "Cancelling previous chat request."
-        );
-
-
-        currentChatController.abort();
-
-        currentChatController = null;
-
-    }
-
-
-    /*
-     * Stop currently playing audio.
-     */
-
-    if (currentAudio) {
-
-        try {
-
-            currentAudio.pause();
-
-            currentAudio.currentTime = 0;
-
-        } catch (error) {
-
-            console.error(
-                "Could not stop audio:",
-                error
-            );
-
-        }
-
-
-        currentAudio = null;
-
-    }
-
-
-    /*
-     * Remove queued speech from
-     * the previous request.
-     */
-
-    speechQueue = [];
-
-    speechWorkerRunning = false;
-
-    isSpeaking = false;
-
-}
-
-
-/* =========================================================
-   PROCESS QUESTION
-   ========================================================= */
-
-async function processQuestion(text) {
-
-    /*
-     * Give every request its own ID.
-     */
+async function processQuestion(
+    text,
+    isVoiceRequest = false
+) {
 
     const thisRequestId =
-        ++requestId;
+        ++currentRequestId;
 
 
-    /*
-     * Cancel anything left over
-     * from the previous request.
-     */
+    currentRequestIsVoice =
+        isVoiceRequest;
+
 
     cancelPreviousRequest();
 
 
-    /*
-     * Create a new controller.
-     */
-
     currentChatController =
         new AbortController();
+
+
+    let assistantMessage =
+        null;
+
+
+    if (!isVoiceRequest) {
+
+        assistantMessage =
+            createAssistantMessage();
+
+    }
 
 
     console.log(
@@ -517,6 +704,7 @@ async function processQuestion(text) {
         await fetch(
             "/chat/stream",
             {
+
                 method: "POST",
 
                 headers: {
@@ -532,7 +720,9 @@ async function processQuestion(text) {
                     currentChatController
                         .signal,
 
-                cache: "no-store"
+                cache:
+                    "no-store"
+
             }
         );
 
@@ -549,7 +739,7 @@ async function processQuestion(text) {
     if (!response.body) {
 
         throw new Error(
-            "Streaming is not supported by this browser."
+            "Streaming is not supported."
         );
 
     }
@@ -583,25 +773,14 @@ async function processQuestion(text) {
 
 
         if (done) {
-
             break;
-
         }
 
 
-        /*
-         * Ignore data belonging to
-         * an older request.
-         */
-
         if (
             thisRequestId !==
-            requestId
+            currentRequestId
         ) {
-
-            console.log(
-                "CHAT DEBUG: ignoring old request"
-            );
 
             return;
 
@@ -630,9 +809,7 @@ async function processQuestion(text) {
         ) {
 
             if (!line.trim()) {
-
                 continue;
-
             }
 
 
@@ -662,14 +839,9 @@ async function processQuestion(text) {
             );
 
 
-            /*
-             * Ignore events from
-             * older requests.
-             */
-
             if (
                 thisRequestId !==
-                requestId
+                currentRequestId
             ) {
 
                 return;
@@ -678,7 +850,7 @@ async function processQuestion(text) {
 
 
             /* =================================================
-               STATUS EVENT
+               STATUS
                ================================================= */
 
             if (
@@ -686,15 +858,19 @@ async function processQuestion(text) {
                 "status"
             ) {
 
-                updateStatus(
-                    event.status
-                );
+                if (isVoiceRequest) {
+
+                    updateStatus(
+                        event.status
+                    );
+
+                }
 
             }
 
 
             /* =================================================
-               TEXT EVENT
+               TEXT
                ================================================= */
 
             if (
@@ -710,47 +886,22 @@ async function processQuestion(text) {
                     content;
 
 
-                speechBuffer +=
-                    content;
-
-
-                /*
-                 * Don't send tiny pieces of
-                 * a short answer to TTS.
-                 */
-
                 if (
-                    completeResponse.length <
-                    SHORT_RESPONSE_LIMIT
+                    assistantMessage
                 ) {
 
-                    continue;
+                    appendAssistantText(
+                        assistantMessage,
+                        content
+                    );
 
                 }
 
 
-                /*
-                 * Long response:
-                 * create larger TTS batches.
-                 */
+                if (isVoiceRequest) {
 
-                const batch =
-                    getSpeechBatch(
-                        speechBuffer
-                    );
-
-
-                if (
-                    batch.text
-                ) {
-
-                    enqueueSpeech(
-                        batch.text
-                    );
-
-
-                    speechBuffer =
-                        batch.remaining;
+                    speechBuffer +=
+                        content;
 
                 }
 
@@ -758,7 +909,7 @@ async function processQuestion(text) {
 
 
             /* =================================================
-               ERROR EVENT
+               ERROR
                ================================================= */
 
             if (
@@ -774,7 +925,7 @@ async function processQuestion(text) {
 
 
             /* =================================================
-               DONE EVENT
+               DONE
                ================================================= */
 
             if (
@@ -793,9 +944,9 @@ async function processQuestion(text) {
     }
 
 
-    /*
-     * Process a final partial line.
-     */
+    /* =====================================================
+       FINAL PARTIAL LINE
+       ===================================================== */
 
     if (
         buffer.trim()
@@ -820,8 +971,26 @@ async function processQuestion(text) {
                     content;
 
 
-                speechBuffer +=
-                    content;
+                if (
+                    assistantMessage
+                ) {
+
+                    appendAssistantText(
+                        assistantMessage,
+                        content
+                    );
+
+                }
+
+
+                if (
+                    isVoiceRequest
+                ) {
+
+                    speechBuffer +=
+                        content;
+
+                }
 
             }
 
@@ -837,56 +1006,45 @@ async function processQuestion(text) {
     }
 
 
-    /*
-     * ========================================================
-     * FINAL TTS HANDLING
-     * ========================================================
-     *
-     * Short response:
-     * one complete TTS request.
-     *
-     * Long response:
-     * send remaining accumulated text.
-     */
-
-    if (
-        completeResponse.trim()
-    ) {
-
-        if (
-            completeResponse.length <
-            SHORT_RESPONSE_LIMIT
-        ) {
-
-            enqueueSpeech(
-                completeResponse
-            );
-
-        } else {
-
-            if (
-                speechBuffer.trim()
-            ) {
-
-                enqueueSpeech(
-                    speechBuffer
-                );
-
-            }
-
-        }
-
-    }
-
-
     currentChatController =
         null;
 
 
-    /*
-     * If there is no voice work,
-     * return to READY.
-     */
+    /* =====================================================
+       VOICE TTS
+       ===================================================== */
+
+    if (
+        isVoiceRequest &&
+        speechBuffer.trim()
+    ) {
+
+        enqueueSpeech(
+            speechBuffer
+        );
+
+    }
+
+
+    /* =====================================================
+       TEXT MODE
+       ===================================================== */
+
+    if (
+        !isVoiceRequest
+    ) {
+
+        isProcessing =
+            false;
+
+        return;
+
+    }
+
+
+    /* =====================================================
+       VOICE FINISHED
+       ===================================================== */
 
     if (
         speechQueue.length === 0 &&
@@ -898,155 +1056,304 @@ async function processQuestion(text) {
             "READY"
         );
 
+
+        closeVoiceMode();
+
     }
 
 }
 
 
 /* =========================================================
-   TTS BATCHING
+   CANCEL PREVIOUS REQUEST
    ========================================================= */
 
-function getSpeechBatch(text) {
+function cancelPreviousRequest() {
 
     if (
-        text.length <
-        TTS_BATCH_SIZE
+        currentChatController
     ) {
 
-        return {
-            text: "",
-            remaining: text
-        };
+        try {
+
+            currentChatController.abort();
+
+        } catch (error) {
+
+            console.error(
+                "Could not cancel request:",
+                error
+            );
+
+        }
+
+
+        currentChatController =
+            null;
 
     }
 
 
-    /*
-     * Prefer a sentence boundary.
-     */
+    if (currentAudio) {
 
-    const sentenceEnd =
-        findSentenceBoundary(
-            text,
-            TTS_BATCH_SIZE
-        );
+        try {
+
+            currentAudio.pause();
+
+            currentAudio.currentTime =
+                0;
+
+        } catch (error) {
+
+            console.error(
+                "Could not stop audio:",
+                error
+            );
+
+        }
 
 
-    if (
-        sentenceEnd > 0
-    ) {
-
-        return {
-
-            text:
-                text
-                    .slice(
-                        0,
-                        sentenceEnd
-                    )
-                    .trim(),
-
-            remaining:
-                text
-                    .slice(
-                        sentenceEnd
-                    )
-                    .trim()
-
-        };
+        currentAudio =
+            null;
 
     }
 
 
-    /*
-     * If no sentence boundary exists,
-     * cut at the nearest space.
-     */
-
-    const spaceIndex =
-        text.lastIndexOf(
-            " ",
-            TTS_BATCH_SIZE
-        );
+    speechQueue =
+        [];
 
 
-    if (
-        spaceIndex > 0
-    ) {
-
-        return {
-
-            text:
-                text
-                    .slice(
-                        0,
-                        spaceIndex
-                    )
-                    .trim(),
-
-            remaining:
-                text
-                    .slice(
-                        spaceIndex
-                    )
-                    .trim()
-
-        };
-
-    }
+    speechWorkerRunning =
+        false;
 
 
-    return {
-        text: "",
-        remaining: text
-    };
+    isSpeaking =
+        false;
 
 }
 
 
 /* =========================================================
-   FIND SENTENCE BOUNDARY
+   CREATE MESSAGE
    ========================================================= */
 
-function findSentenceBoundary(
-    text,
-    minimumPosition
+function appendMessage(
+    role,
+    text
 ) {
 
-    const part =
-        text.slice(
-            0,
-            minimumPosition
-        );
+    if (!messages) {
+        return;
+    }
 
 
-    const matches =
-        [
-            ...part.matchAll(
-                /[.!?](?:\s|$)/g
-            )
-        ];
+    if (welcome) {
 
-
-    if (
-        matches.length === 0
-    ) {
-
-        return -1;
+        welcome.style.display =
+            "none";
 
     }
 
 
-    const lastMatch =
-        matches[
-            matches.length - 1
-        ];
+    const message =
+        document.createElement(
+            "div"
+        );
 
 
-    return (
-        lastMatch.index + 1
+    message.className =
+        `message ${role}`;
+
+
+    const content =
+        document.createElement(
+            "div"
+        );
+
+
+    content.className =
+        "message-content";
+
+
+    content.textContent =
+        text;
+
+
+    message.appendChild(
+        content
     );
+
+
+    messages.appendChild(
+        message
+    );
+
+
+    scrollChatToBottom();
+
+
+    return message;
+
+}
+
+
+/* =========================================================
+   CREATE ASSISTANT MESSAGE
+   ========================================================= */
+
+function createAssistantMessage() {
+
+    if (!messages) {
+        return null;
+    }
+
+
+    if (welcome) {
+
+        welcome.style.display =
+            "none";
+
+    }
+
+
+    const message =
+        document.createElement(
+            "div"
+        );
+
+
+    message.className =
+        "message assistant";
+
+
+    const wrapper =
+        document.createElement(
+            "div"
+        );
+
+
+    wrapper.className =
+        "assistant-wrapper";
+
+
+    const label =
+        document.createElement(
+            "div"
+        );
+
+
+    label.className =
+        "message-label";
+
+
+    label.textContent =
+        "HANNAH";
+
+
+    const content =
+        document.createElement(
+            "div"
+        );
+
+
+    content.className =
+        "message-content";
+
+
+    wrapper.appendChild(
+        label
+    );
+
+
+    wrapper.appendChild(
+        content
+    );
+
+
+    message.appendChild(
+        wrapper
+    );
+
+
+    messages.appendChild(
+        message
+    );
+
+
+    scrollChatToBottom();
+
+
+    return content;
+
+}
+
+
+/* =========================================================
+   STREAM ASSISTANT TEXT
+   ========================================================= */
+
+function appendAssistantText(
+    element,
+    text
+) {
+
+    if (!element) {
+        return;
+    }
+
+
+    element.textContent +=
+        text;
+
+
+    scrollChatToBottom();
+
+}
+
+
+/* =========================================================
+   CHAT SCROLL
+   ========================================================= */
+
+function scrollChatToBottom() {
+
+    if (!chatArea) {
+        return;
+    }
+
+
+    requestAnimationFrame(
+        () => {
+
+            chatArea.scrollTop =
+                chatArea.scrollHeight;
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   TEXTAREA RESIZE
+   ========================================================= */
+
+function resizeInput() {
+
+    if (!messageInput) {
+        return;
+    }
+
+
+    messageInput.style.height =
+        "auto";
+
+
+    messageInput.style.height =
+        `${Math.min(
+            messageInput.scrollHeight,
+            140
+        )}px`;
 
 }
 
@@ -1055,7 +1362,9 @@ function findSentenceBoundary(
    TTS QUEUE
    ========================================================= */
 
-function enqueueSpeech(text) {
+function enqueueSpeech(
+    text
+) {
 
     const cleanedText =
         cleanTextForSpeech(
@@ -1064,20 +1373,18 @@ function enqueueSpeech(text) {
 
 
     if (!cleanedText) {
-
         return;
-
     }
-
-
-    console.log(
-        "TTS DEBUG: queueing",
-        cleanedText
-    );
 
 
     speechQueue.push(
         cleanedText
+    );
+
+
+    console.log(
+        "TTS queue:",
+        speechQueue
     );
 
 
@@ -1143,22 +1450,20 @@ async function runSpeechWorker() {
         false;
 
 
-    isSpeaking = false;
+    isSpeaking =
+        false;
 
-
-    /*
-     * READY only after the complete
-     * audio queue has finished.
-     */
 
     if (
-        !isListening &&
-        !isProcessing
+        currentRequestIsVoice
     ) {
 
         updateStatus(
             "READY"
         );
+
+
+        closeVoiceMode();
 
     }
 
@@ -1166,10 +1471,12 @@ async function runSpeechWorker() {
 
 
 /* =========================================================
-   TEXT TO SPEECH
+   TTS
    ========================================================= */
 
-async function speakResponse(text) {
+async function speakResponse(
+    text
+) {
 
     updateStatus(
         "PREPARING VOICE"
@@ -1177,7 +1484,7 @@ async function speakResponse(text) {
 
 
     console.log(
-        "TTS DEBUG: sending",
+        "Sending text to TTS:",
         text
     );
 
@@ -1186,6 +1493,7 @@ async function speakResponse(text) {
         await fetch(
             "/voice/speak",
             {
+
                 method: "POST",
 
                 headers: {
@@ -1197,7 +1505,9 @@ async function speakResponse(text) {
                     text: text
                 }),
 
-                cache: "no-store"
+                cache:
+                    "no-store"
+
             }
         );
 
@@ -1222,7 +1532,9 @@ async function speakResponse(text) {
 
 
     const audio =
-        new Audio(audioUrl);
+        new Audio(
+            audioUrl
+        );
 
 
     currentAudio =
@@ -1230,7 +1542,8 @@ async function speakResponse(text) {
 
 
     /*
-     * Connect audio to the visualizer.
+     * Connect Hannah's voice
+     * to the orb visualizer.
      */
 
     if (
@@ -1244,93 +1557,81 @@ async function speakResponse(text) {
     }
 
 
-    /*
-     * Wait for actual playback
-     * to finish before continuing.
-     */
-
     await new Promise(
         (resolve, reject) => {
 
-            audio.onplay = () => {
+            audio.onplay =
+                () => {
 
-                isSpeaking =
-                    true;
-
-
-                updateStatus(
-                    "SPEAKING"
-                );
+                    isSpeaking =
+                        true;
 
 
-                console.log(
-                    "VOICE DEBUG: audio started"
-                );
+                    updateStatus(
+                        "SPEAKING"
+                    );
 
-            };
-
-
-            audio.onended = () => {
-
-                isSpeaking =
-                    false;
+                };
 
 
-                console.log(
-                    "VOICE DEBUG: audio ended"
-                );
+            audio.onended =
+                () => {
+
+                    isSpeaking =
+                        false;
 
 
-                if (
-                    currentAudio ===
-                    audio
-                ) {
+                    if (
+                        currentAudio ===
+                        audio
+                    ) {
 
-                    currentAudio =
-                        null;
+                        currentAudio =
+                            null;
 
-                }
-
-
-                URL.revokeObjectURL(
-                    audioUrl
-                );
+                    }
 
 
-                resolve();
-
-            };
-
-
-            audio.onerror = () => {
-
-                isSpeaking =
-                    false;
+                    URL.revokeObjectURL(
+                        audioUrl
+                    );
 
 
-                if (
-                    currentAudio ===
-                    audio
-                ) {
+                    resolve();
 
-                    currentAudio =
-                        null;
-
-                }
+                };
 
 
-                URL.revokeObjectURL(
-                    audioUrl
-                );
+            audio.onerror =
+                () => {
+
+                    isSpeaking =
+                        false;
 
 
-                reject(
-                    new Error(
-                        "Audio playback failed."
-                    )
-                );
+                    if (
+                        currentAudio ===
+                        audio
+                    ) {
 
-            };
+                        currentAudio =
+                            null;
+
+                    }
+
+
+                    URL.revokeObjectURL(
+                        audioUrl
+                    );
+
+
+                    reject(
+                        new Error(
+                            "Audio playback failed."
+                        )
+                    );
+
+                };
 
 
             audio.play()
@@ -1345,15 +1646,17 @@ async function speakResponse(text) {
 
 
 /* =========================================================
-   CLEAN TEXT FOR SPEECH
+   CLEAN TTS TEXT
    ========================================================= */
 
-function cleanTextForSpeech(text) {
+function cleanTextForSpeech(
+    text
+) {
 
     return text
 
         /*
-         * Remove bold.
+         * Remove bold markers.
          */
 
         .replace(
@@ -1362,7 +1665,7 @@ function cleanTextForSpeech(text) {
         )
 
         /*
-         * Remove italic.
+         * Remove italic markers.
          */
 
         .replace(
@@ -1380,7 +1683,7 @@ function cleanTextForSpeech(text) {
         )
 
         /*
-         * Remove headings.
+         * Remove Markdown headings.
          */
 
         .replace(
@@ -1389,7 +1692,7 @@ function cleanTextForSpeech(text) {
         )
 
         /*
-         * Convert markdown links
+         * Convert Markdown links
          * to visible text.
          */
 
@@ -1408,7 +1711,19 @@ function cleanTextForSpeech(text) {
         )
 
         /*
-         * Remove excessive whitespace.
+         * Remove common emojis.
+         *
+         * IMPORTANT:
+         * This regex uses the Unicode "u" flag.
+         */
+
+        .replace(
+            /[\u{1F300}-\u{1FAFF}]/gu,
+            ""
+        )
+
+        /*
+         * Normalize whitespace.
          */
 
         .replace(
@@ -1425,15 +1740,18 @@ function cleanTextForSpeech(text) {
    STATUS
    ========================================================= */
 
-function updateStatus(status) {
+function updateStatus(
+    status
+) {
+
+    if (!statusText) {
+        return;
+    }
+
 
     const displayStatus =
         status.toUpperCase();
 
-
-    /*
-     * Restart status animation.
-     */
 
     statusText.classList.remove(
         "status-change"
@@ -1452,4 +1770,3 @@ function updateStatus(status) {
     );
 
 }
-
