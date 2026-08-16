@@ -26,8 +26,8 @@ let requestId = 0;
  * Longer responses are split into larger natural chunks.
  */
 
-const SHORT_RESPONSE_LIMIT = 180;
-const TTS_BATCH_SIZE = 450;
+const SHORT_RESPONSE_LIMIT = 250;
+const TTS_BATCH_SIZE = 1000;
 
 
 /* =========================================================
@@ -1453,10 +1453,3 @@ function updateStatus(status) {
 
 }
 
-
-/* =========================================================
-   ORB AUDIO CONNECTION
-   ========================================================= */
-
-window.connectOrbToAudio =
-    connectOrbToAudio;
