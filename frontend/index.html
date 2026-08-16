@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>RetailAI</title>
+
+    <link rel="stylesheet" href="/style.css">
+
+</head>
+
+
+<body>
+
+    <main class="app">
+
+        <header class="top-bar">
+
+            <div class="brand">
+                RETAIL<span>AI</span>
+            </div>
+
+            <div class="system-status">
+
+                <span class="status-dot"></span>
+
+                <span>
+                    ONLINE
+                </span>
+
+            </div>
+
+        </header>
+
+
+        <section class="main-area">
+
+            <button
+    id="micButton"
+    class="orb-button"
+    aria-label="Start listening"
+>
+
+    <div
+        id="orb-container"
+        class="orb-container"
+    ></div>
+
+</button>
+
+
+            <div class="state">
+
+                <p id="status">
+                    READY
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <footer class="bottom-bar">
+
+            <p>
+                Tap the core to speak
+            </p>
+
+        </footer>
+
+    </main>
+
+
+<script type="module" src="/orb.js"></script>
+
+<script src="/script.js"></script>
+</body>
+
+</html>

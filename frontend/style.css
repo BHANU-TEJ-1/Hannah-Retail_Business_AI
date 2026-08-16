@@ -1,0 +1,285 @@
+* {
+    box-sizing: border-box;
+}
+
+
+html,
+body {
+
+    width: 100%;
+
+    height: 100%;
+
+    margin: 0;
+
+}
+
+
+body {
+
+    background: #050507;
+
+    color: white;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    overflow: hidden;
+
+}
+
+
+.app {
+
+    width: 100%;
+
+    height: 100vh;
+
+    display: flex;
+
+    flex-direction: column;
+
+}
+
+
+/* =========================
+   TOP BAR
+   ========================= */
+
+.top-bar {
+
+    width: 100%;
+
+    padding: 28px 40px;
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+}
+
+
+.brand {
+
+    font-size: 18px;
+
+    font-weight: 600;
+
+    letter-spacing: 4px;
+
+}
+
+
+.brand span {
+
+    font-weight: 300;
+
+    opacity: 0.65;
+
+}
+
+
+.system-status {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    font-size: 11px;
+
+    letter-spacing: 2px;
+
+    color: #8c8c95;
+
+}
+
+
+.status-dot {
+
+    width: 6px;
+
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: #7de7ff;
+
+    box-shadow:
+        0 0 8px #7de7ff;
+
+}
+
+
+/* =========================
+   MAIN AREA
+   ========================= */
+
+.main-area {
+
+    flex: 1;
+
+    display: flex;
+
+    flex-direction: column;
+
+    justify-content: center;
+
+    align-items: center;
+
+    padding-bottom: 40px;
+
+}
+
+
+/* =========================
+   3D ORB
+   ========================= */
+
+.orb-button {
+
+    width: 460px;
+
+    height: 460px;
+
+    padding: 0;
+
+    border: none;
+
+    background: transparent;
+
+    cursor: pointer;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+}
+
+
+.orb-container {
+
+    width: 460px;
+
+    height: 460px;
+
+    position: relative;
+
+}
+
+
+.orb-container canvas {
+
+    display: block;
+
+    width: 100%;
+
+    height: 100%;
+
+}
+
+
+.orb-button:active {
+
+    transform: scale(0.98);
+
+}
+
+
+.orb-button:active
+.orb-placeholder {
+
+    transform: scale(0.98);
+
+}
+
+
+/* =========================
+   STATE
+   ========================= */
+
+.state {
+
+    margin-top: 8px;
+
+}
+
+
+#status {
+
+    margin: 0;
+
+    font-size: 11px;
+
+    letter-spacing: 5px;
+
+    color: #8c8c95;
+
+}
+
+
+/* =========================
+   BOTTOM
+   ========================= */
+
+.bottom-bar {
+
+    height: 70px;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+}
+
+
+.bottom-bar p {
+
+    margin: 0;
+
+    color: #55555e;
+
+    font-size: 10px;
+
+    letter-spacing: 2px;
+
+}
+
+.status-change {
+
+    animation:
+        statusFade 0.35s ease;
+
+}
+
+
+@keyframes statusFade {
+
+    0% {
+
+        opacity: 0;
+
+        transform:
+            translateY(4px);
+
+    }
+
+    100% {
+
+        opacity: 1;
+
+        transform:
+            translateY(0);
+
+    }
+
+}

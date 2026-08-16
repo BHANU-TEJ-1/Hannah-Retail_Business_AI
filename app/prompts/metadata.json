@@ -1,0 +1,399 @@
+{
+    "tables": [
+        {
+            "table": "customers",
+            "columns": [
+                {
+                    "column": "id",
+                    "type": "integer"
+                },
+                {
+                    "column": "name",
+                    "type": "character varying"
+                },
+                {
+                    "column": "contact_email",
+                    "type": "character varying"
+                },
+                {
+                    "column": "contact_phone",
+                    "type": "character varying"
+                },
+                {
+                    "column": "address",
+                    "type": "text"
+                },
+                {
+                    "column": "credit_limit",
+                    "type": "numeric"
+                },
+                {
+                    "column": "current_credit",
+                    "type": "numeric"
+                },
+                {
+                    "column": "created_at",
+                    "type": "timestamp without time zone"
+                },
+                {
+                    "column": "updated_at",
+                    "type": "timestamp without time zone"
+                }
+            ]
+        },
+        {
+            "table": "inventory",
+            "columns": [
+                {
+                    "column": "id",
+                    "type": "integer"
+                },
+                {
+                    "column": "product_id",
+                    "type": "integer"
+                },
+                {
+                    "column": "warehouse_id",
+                    "type": "integer"
+                },
+                {
+                    "column": "quantity",
+                    "type": "integer"
+                },
+                {
+                    "column": "reserved_quantity",
+                    "type": "integer"
+                },
+                {
+                    "column": "last_updated",
+                    "type": "timestamp without time zone"
+                }
+            ]
+        },
+        {
+            "table": "inventory_movements",
+            "columns": [
+                {
+                    "column": "id",
+                    "type": "integer"
+                },
+                {
+                    "column": "product_id",
+                    "type": "integer"
+                },
+                {
+                    "column": "warehouse_id",
+                    "type": "integer"
+                },
+                {
+                    "column": "movement_type",
+                    "type": "character varying"
+                },
+                {
+                    "column": "quantity",
+                    "type": "integer"
+                },
+                {
+                    "column": "reason",
+                    "type": "character varying"
+                },
+                {
+                    "column": "reference_id",
+                    "type": "integer"
+                },
+                {
+                    "column": "created_at",
+                    "type": "timestamp without time zone"
+                }
+            ]
+        },
+        {
+            "table": "payments",
+            "columns": [
+                {
+                    "column": "id",
+                    "type": "integer"
+                },
+                {
+                    "column": "customer_id",
+                    "type": "integer"
+                },
+                {
+                    "column": "sales_order_id",
+                    "type": "integer"
+                },
+                {
+                    "column": "amount",
+                    "type": "numeric"
+                },
+                {
+                    "column": "payment_method",
+                    "type": "character varying"
+                },
+                {
+                    "column": "payment_date",
+                    "type": "timestamp without time zone"
+                },
+                {
+                    "column": "status",
+                    "type": "character varying"
+                }
+            ]
+        },
+        {
+            "table": "products",
+            "columns": [
+                {
+                    "column": "id",
+                    "type": "integer"
+                },
+                {
+                    "column": "sku",
+                    "type": "character varying"
+                },
+                {
+                    "column": "name",
+                    "type": "character varying"
+                },
+                {
+                    "column": "brand",
+                    "type": "character varying"
+                },
+                {
+                    "column": "category",
+                    "type": "character varying"
+                },
+                {
+                    "column": "unit",
+                    "type": "character varying"
+                },
+                {
+                    "column": "unit_price",
+                    "type": "numeric"
+                },
+                {
+                    "column": "reorder_level",
+                    "type": "integer"
+                },
+                {
+                    "column": "reorder_qty",
+                    "type": "integer"
+                },
+                {
+                    "column": "default_supplier_id",
+                    "type": "integer"
+                },
+                {
+                    "column": "is_active",
+                    "type": "boolean"
+                },
+                {
+                    "column": "created_at",
+                    "type": "timestamp without time zone"
+                },
+                {
+                    "column": "updated_at",
+                    "type": "timestamp without time zone"
+                }
+            ]
+        },
+        {
+            "table": "purchase_order_items",
+            "columns": [
+                {
+                    "column": "id",
+                    "type": "integer"
+                },
+                {
+                    "column": "purchase_order_id",
+                    "type": "integer"
+                },
+                {
+                    "column": "product_id",
+                    "type": "integer"
+                },
+                {
+                    "column": "quantity",
+                    "type": "integer"
+                },
+                {
+                    "column": "unit_price",
+                    "type": "numeric"
+                },
+                {
+                    "column": "subtotal",
+                    "type": "numeric"
+                }
+            ]
+        },
+        {
+            "table": "purchase_orders",
+            "columns": [
+                {
+                    "column": "id",
+                    "type": "integer"
+                },
+                {
+                    "column": "supplier_id",
+                    "type": "integer"
+                },
+                {
+                    "column": "status",
+                    "type": "character varying"
+                },
+                {
+                    "column": "order_date",
+                    "type": "timestamp without time zone"
+                },
+                {
+                    "column": "expected_delivery",
+                    "type": "date"
+                },
+                {
+                    "column": "total_amount",
+                    "type": "numeric"
+                },
+                {
+                    "column": "created_at",
+                    "type": "timestamp without time zone"
+                }
+            ]
+        },
+        {
+            "table": "sales_order_items",
+            "columns": [
+                {
+                    "column": "id",
+                    "type": "integer"
+                },
+                {
+                    "column": "sales_order_id",
+                    "type": "integer"
+                },
+                {
+                    "column": "product_id",
+                    "type": "integer"
+                },
+                {
+                    "column": "quantity",
+                    "type": "integer"
+                },
+                {
+                    "column": "selling_price",
+                    "type": "numeric"
+                },
+                {
+                    "column": "subtotal",
+                    "type": "numeric"
+                }
+            ]
+        },
+        {
+            "table": "sales_orders",
+            "columns": [
+                {
+                    "column": "id",
+                    "type": "integer"
+                },
+                {
+                    "column": "customer_id",
+                    "type": "integer"
+                },
+                {
+                    "column": "order_date",
+                    "type": "timestamp without time zone"
+                },
+                {
+                    "column": "payment_status",
+                    "type": "character varying"
+                },
+                {
+                    "column": "delivery_status",
+                    "type": "character varying"
+                },
+                {
+                    "column": "total_amount",
+                    "type": "numeric"
+                },
+                {
+                    "column": "created_at",
+                    "type": "timestamp without time zone"
+                }
+            ]
+        },
+        {
+            "table": "suppliers",
+            "columns": [
+                {
+                    "column": "id",
+                    "type": "integer"
+                },
+                {
+                    "column": "name",
+                    "type": "character varying"
+                },
+                {
+                    "column": "contact_email",
+                    "type": "character varying"
+                },
+                {
+                    "column": "contact_phone",
+                    "type": "character varying"
+                },
+                {
+                    "column": "address",
+                    "type": "text"
+                },
+                {
+                    "column": "gst_number",
+                    "type": "character varying"
+                },
+                {
+                    "column": "rating",
+                    "type": "numeric"
+                },
+                {
+                    "column": "payment_terms",
+                    "type": "character varying"
+                },
+                {
+                    "column": "is_active",
+                    "type": "boolean"
+                },
+                {
+                    "column": "created_at",
+                    "type": "timestamp without time zone"
+                },
+                {
+                    "column": "updated_at",
+                    "type": "timestamp without time zone"
+                }
+            ]
+        },
+        {
+            "table": "warehouses",
+            "columns": [
+                {
+                    "column": "id",
+                    "type": "integer"
+                },
+                {
+                    "column": "name",
+                    "type": "character varying"
+                },
+                {
+                    "column": "location",
+                    "type": "character varying"
+                },
+                {
+                    "column": "created_at",
+                    "type": "timestamp without time zone"
+                },
+                {
+                    "column": "updated_at",
+                    "type": "timestamp without time zone"
+                }
+            ]
+        }
+    ]
+}
