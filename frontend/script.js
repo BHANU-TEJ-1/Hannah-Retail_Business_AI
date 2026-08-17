@@ -353,6 +353,21 @@ function openVoiceMode() {
         "false"
     );
 
+
+    if (
+        window.resizeHannahOrb
+    ) {
+
+        requestAnimationFrame(
+            () => {
+
+                window.resizeHannahOrb();
+
+            }
+        );
+
+    }
+
 }
 
 
@@ -413,11 +428,6 @@ function startListening() {
         );
 
 
-        console.log(
-            "VOICE DEBUG: calling recognition.start()"
-        );
-
-
         recognition.start();
 
     } catch (error) {
@@ -450,11 +460,6 @@ function stopListening() {
     if (!recognition) {
         return;
     }
-
-
-    console.log(
-        "VOICE DEBUG: stopping recognition"
-    );
 
 
     isListening =
@@ -495,11 +500,6 @@ function stopListening() {
 
 function handleRecognitionStart() {
 
-    console.log(
-        "VOICE DEBUG: recognition started"
-    );
-
-
     isListening =
         true;
 
@@ -519,22 +519,10 @@ async function handleRecognitionResult(
     event
 ) {
 
-    console.log(
-        "VOICE DEBUG: result received",
-        event
-    );
-
-
     const text =
         event.results[0][0]
             .transcript
             .trim();
-
-
-    console.log(
-        "User said:",
-        text
-    );
 
 
     if (!text) {
@@ -630,16 +618,6 @@ function handleRecognitionError(
 
 function handleRecognitionEnd() {
 
-    console.log(
-        "VOICE DEBUG: recognition ended",
-        {
-            isListening,
-            isProcessing,
-            isSpeaking
-        }
-    );
-
-
     isListening =
         false;
 
@@ -692,12 +670,6 @@ async function processQuestion(
             createAssistantMessage();
 
     }
-
-
-    console.log(
-        "CHAT DEBUG: sending question",
-        text
-    );
 
 
     const response =
@@ -755,14 +727,8 @@ async function processQuestion(
 
     let buffer = "";
 
-    let completeResponse = "";
-
     let speechBuffer = "";
 
-
-    /* =====================================================
-       READ STREAM
-       ===================================================== */
 
     while (true) {
 
@@ -833,12 +799,6 @@ async function processQuestion(
             }
 
 
-            console.log(
-                "Stream event:",
-                event
-            );
-
-
             if (
                 thisRequestId !==
                 currentRequestId
@@ -882,10 +842,6 @@ async function processQuestion(
                     event.content || "";
 
 
-                completeResponse +=
-                    content;
-
-
                 if (
                     assistantMessage
                 ) {
@@ -923,22 +879,6 @@ async function processQuestion(
 
             }
 
-
-            /* =================================================
-               DONE
-               ================================================= */
-
-            if (
-                event.type ===
-                "done"
-            ) {
-
-                console.log(
-                    "Streaming complete."
-                );
-
-            }
-
         }
 
     }
@@ -965,10 +905,6 @@ async function processQuestion(
 
                 const content =
                     event.content || "";
-
-
-                completeResponse +=
-                    content;
 
 
                 if (
@@ -1382,12 +1318,6 @@ function enqueueSpeech(
     );
 
 
-    console.log(
-        "TTS queue:",
-        speechQueue
-    );
-
-
     runSpeechWorker();
 
 }
@@ -1483,12 +1413,6 @@ async function speakResponse(
     );
 
 
-    console.log(
-        "Sending text to TTS:",
-        text
-    );
-
-
     const response =
         await fetch(
             "/voice/speak",
@@ -1542,8 +1466,8 @@ async function speakResponse(
 
 
     /*
-     * Connect Hannah's voice
-     * to the orb visualizer.
+     * Connect the actual Hannah
+     * voice audio to the orb.
      */
 
     if (
@@ -1655,76 +1579,40 @@ function cleanTextForSpeech(
 
     return text
 
-        /*
-         * Remove bold markers.
-         */
-
         .replace(
             /\*\*/g,
             ""
         )
-
-        /*
-         * Remove italic markers.
-         */
 
         .replace(
             /\*/g,
             ""
         )
 
-        /*
-         * Remove inline code.
-         */
-
         .replace(
             /`/g,
             ""
         )
-
-        /*
-         * Remove Markdown headings.
-         */
 
         .replace(
             /^#+\s*/gm,
             ""
         )
 
-        /*
-         * Convert Markdown links
-         * to visible text.
-         */
-
         .replace(
             /\[([^\]]+)\]\([^)]+\)/g,
             "$1"
         )
-
-        /*
-         * Remove bullet markers.
-         */
 
         .replace(
             /^\s*[-•]\s*/gm,
             ""
         )
 
-        /*
-         * Remove common emojis.
-         *
-         * IMPORTANT:
-         * This regex uses the Unicode "u" flag.
-         */
-
         .replace(
             /[\u{1F300}-\u{1FAFF}]/gu,
             ""
         )
-
-        /*
-         * Normalize whitespace.
-         */
 
         .replace(
             /\s+/g,
@@ -1750,7 +1638,9 @@ function updateStatus(
 
 
     const displayStatus =
-        status.toUpperCase();
+        String(
+            status || "READY"
+        ).toUpperCase();
 
 
     statusText.classList.remove(
@@ -1768,5 +1658,21 @@ function updateStatus(
     statusText.classList.add(
         "status-change"
     );
+
+
+    /*
+     * Directly tell the orb what
+     * Hannah is doing.
+     */
+
+    if (
+        window.setHannahOrbState
+    ) {
+
+        window.setHannahOrbState(
+            displayStatus
+        );
+
+    }
 
 }
