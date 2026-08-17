@@ -69,6 +69,12 @@ if (!orbContainer) {
         });
 
 
+    /*
+     * Keep the resolution high enough for
+     * a sharp orb without unnecessarily
+     * increasing GPU work.
+     */
+
     renderer.setPixelRatio(
         Math.min(
             window.devicePixelRatio,
@@ -81,6 +87,10 @@ if (!orbContainer) {
         0x000000,
         0
     );
+
+
+    renderer.domElement.style.display =
+        "block";
 
 
     orbContainer.appendChild(
@@ -102,10 +112,8 @@ if (!orbContainer) {
 
 
         /*
-         * The voice overlay may initially
+         * The voice interface can initially
          * be hidden.
-         *
-         * Do not try to render a 0x0 canvas.
          */
 
         if (
@@ -144,9 +152,10 @@ if (!orbContainer) {
 
 
     /*
-     * ResizeObserver is important because
-     * the voice overlay can change from
-     * hidden -> visible without a window resize.
+     * Important for the voice overlay.
+     *
+     * The container can become visible without
+     * the browser window being resized.
      */
 
     if (
@@ -171,7 +180,7 @@ if (!orbContainer) {
 
 
     /* =====================================================
-       OUTER WAVE SPHERE
+       MAIN ORANGE WAVE
        ===================================================== */
 
     const geometry =
@@ -213,7 +222,7 @@ if (!orbContainer) {
 
 
     /* =====================================================
-       SECOND WAVE LAYER
+       SECOND WAVE
        ===================================================== */
 
     const waveGeometry =
@@ -255,7 +264,7 @@ if (!orbContainer) {
 
 
     /* =====================================================
-       INNER CORE
+       WHITE INNER CORE
        ===================================================== */
 
     const coreGeometry =
@@ -294,7 +303,7 @@ if (!orbContainer) {
 
 
     /* =====================================================
-       INNER ORANGE CORE
+       ORANGE INNER CORE
        ===================================================== */
 
     const innerCoreGeometry =
@@ -382,6 +391,11 @@ if (!orbContainer) {
             audioContext.createAnalyser();
 
 
+        /*
+         * Higher FFT gives smoother
+         * frequency analysis.
+         */
+
         analyser.fftSize =
             512;
 
@@ -411,6 +425,17 @@ if (!orbContainer) {
         audio
     ) {
 
+        if (!audio) {
+
+            console.error(
+                "No audio element supplied to orb."
+            );
+
+            return;
+
+        }
+
+
         initializeAudio();
 
 
@@ -423,12 +448,6 @@ if (!orbContainer) {
 
         }
 
-
-        /*
-         * Every HTMLAudioElement created
-         * by script.js is new, so creating
-         * its MediaElementSource once is safe.
-         */
 
         try {
 
@@ -478,11 +497,17 @@ if (!orbContainer) {
             targetAudioLevel =
                 0;
 
+
+            /*
+             * Smoothly return to idle.
+             */
+
             audioLevel +=
                 (
                     targetAudioLevel -
                     audioLevel
-                ) * 0.08;
+                ) * 0.10;
+
 
             return;
 
@@ -498,14 +523,14 @@ if (!orbContainer) {
             0;
 
 
-        /*
-         * Give lower frequencies
-         * slightly more importance.
-         */
-
         const length =
             audioData.length;
 
+
+        /*
+         * Give lower frequencies
+         * slightly more influence.
+         */
 
         for (
             let i = 0;
@@ -539,23 +564,29 @@ if (!orbContainer) {
 
 
         /*
-         * Smooth the movement.
+         * Smooth the audio response.
+         *
+         * This prevents jitter at high FPS.
          */
 
         audioLevel +=
             (
                 targetAudioLevel -
                 audioLevel
-            ) * 0.28;
+            ) * 0.22;
 
     }
 
 
     /* =====================================================
-       ANIMATION
+       SMOOTH ANIMATION
        ===================================================== */
 
-    let time =
+    const clock =
+        new THREE.Clock();
+
+
+    let elapsedTime =
         0;
 
 
@@ -566,35 +597,47 @@ if (!orbContainer) {
         );
 
 
-        time +=
-            0.01;
+        /*
+         * Delta time makes the animation
+         * independent of FPS.
+         */
+
+        const delta =
+            Math.min(
+                clock.getDelta(),
+                0.05
+            );
+
+
+        elapsedTime +=
+            delta;
 
 
         updateAudioLevel();
 
 
         /* =================================================
-           IDLE MOVEMENT
+           IDLE ROTATION
            ================================================= */
 
         orb.rotation.x +=
-            0.0015;
+            delta * 0.35;
 
 
         orb.rotation.y +=
-            0.0025;
+            delta * 0.65;
 
 
         wave.rotation.x -=
-            0.001;
+            delta * 0.22;
 
 
         wave.rotation.y +=
-            0.0015;
+            delta * 0.40;
 
 
         /* =================================================
-           AUDIO VIBRATION
+           AUDIO REACTION
            ================================================= */
 
         const vibration =
@@ -602,7 +645,7 @@ if (!orbContainer) {
 
 
         /*
-         * Main sphere expands.
+         * Main sphere.
          */
 
         const orbScale =
@@ -618,24 +661,24 @@ if (!orbContainer) {
 
 
         /*
-         * Second wave expands
+         * Outer wave expands
          * more aggressively.
          */
 
-        const wavePulse =
+        const waveScale =
             1.04 +
-            vibration * 0.9;
+            vibration * 0.90;
 
 
         wave.scale.set(
-            wavePulse,
-            wavePulse,
-            wavePulse
+            waveScale,
+            waveScale,
+            waveScale
         );
 
 
         /*
-         * Core reacts strongly.
+         * White core.
          */
 
         const coreScale =
@@ -650,6 +693,10 @@ if (!orbContainer) {
         );
 
 
+        /*
+         * Orange inner core.
+         */
+
         const innerScale =
             1 +
             vibration * 2.4;
@@ -663,28 +710,35 @@ if (!orbContainer) {
 
 
         /* =================================================
-           SMALL FLOATING VIBRATION
+           SMOOTH FLOATING
            ================================================= */
 
         orb.position.y =
             Math.sin(
-                time * 2
+                elapsedTime * 2
             ) *
             0.015;
 
 
         wave.position.y =
             Math.sin(
-                time * 2.5
+                elapsedTime * 2.5
             ) *
             0.025;
 
 
         core.position.y =
             Math.sin(
-                time * 3
+                elapsedTime * 3
             ) *
             0.008;
+
+
+        innerCore.position.y =
+            Math.sin(
+                elapsedTime * 3.5
+            ) *
+            0.006;
 
 
         /* =================================================
@@ -723,12 +777,22 @@ if (!orbContainer) {
     }
 
 
+    /* =====================================================
+       START ANIMATION
+       ===================================================== */
+
     animate();
 
 
     /* =====================================================
        GLOBAL FUNCTIONS
        ===================================================== */
+
+    /*
+     * These names are intentionally unchanged.
+     *
+     * script.js already uses them.
+     */
 
     window.initializeOrbAudio =
         initializeAudio;
@@ -739,7 +803,8 @@ if (!orbContainer) {
 
 
     /*
-     * Useful for debugging.
+     * Useful for manually forcing
+     * a resize from the browser console.
      */
 
     window.resizeHannahOrb =
