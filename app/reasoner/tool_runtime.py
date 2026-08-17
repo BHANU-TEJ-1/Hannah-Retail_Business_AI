@@ -14,6 +14,11 @@ from app.tools.gmail_tool import gmail_tool
 from app.tools.sql_executor import sql_executor as _sql_executor
 from app.tools.sql_validator import sql_validator
 
+import json
+
+
+def serialize_tool_result(result):
+    return json.dumps(result, default=str)
 
 def sql_verifier(sql: str) -> dict:
     """Check whether a SQL string is a safe, single SELECT statement.
@@ -86,7 +91,6 @@ class ToolRuntime:
             except Exception as error:
                 result = {"success": False, "error": f"Tool '{name}' failed: {error}"}
 
-        return ToolMessage(content=json.dumps(result), tool_call_id=call_id, name=name)
-
+        return ToolMessage(content=serialize_tool_result(result),tool_call_id=call_id,name=name,)
 
 tool_runtime = ToolRuntime()
